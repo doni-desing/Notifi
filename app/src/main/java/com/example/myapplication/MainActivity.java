@@ -1,10 +1,17 @@
 package com.example.myapplication;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.core.content.ContextCompat;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -20,51 +27,89 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class MainActivity extends AppCompatActivity {
     private Button button;
+    private NotificationManager notificationManager;
+    private NotificationChannel serviceChannel;
     public static final String CHANNEL_ID = "CHANNEL_ID";
     private static final int NOTIFY_ID = 101;
     Random random;
-    final int KEEPUS_NOTIFICATION_ID = 1;
+    Button btnStartService, btnStopService;
+    //    ForegroundService foregroundService;
     ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     List<String> messages = new ArrayList<>();
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        button = findViewById(R.id.button);
+        serviceChannel = new NotificationChannel(CHANNEL_ID, "Foreground Service Channel", NotificationManager.IMPORTANCE_DEFAULT);
+//        foregroundService = new ForegroundService("hiii");
+        btnStartService = findViewById(R.id.buttonStartService);
+        btnStopService = findViewById(R.id.buttonStopService);
         random = new Random();
         messages.add("dash");
         messages.add("koop");
         messages.add("qwerty");
         messages.add("maza");
         messages.add("hello");
-        click();
+        clickel();
+
     }
-    public void click() {
-        button.setOnClickListener(new View.OnClickListener() {
+    public void clickel() {
+        btnStartService.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
             @Override
             public void onClick(View v) {
-                scheduler.scheduleWithFixedDelay(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Create your notification
-                        NotificationCompat.Builder builder =
-                                new NotificationCompat.Builder(MainActivity.this, CHANNEL_ID)
-                                        .setSmallIcon(R.drawable.ic_launcher_background)
-                                        .setContentTitle("Напоминание")
-                                        .setDefaults(Notification.DEFAULT_SOUND)
-                                        .setAutoCancel(true)
-                                        .setOnlyAlertOnce(true)
-                                        .setContentText(messages.get(random.nextInt(messages.size())))
-                                        .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-
-                        NotificationManagerCompat notificationManager =
-                                NotificationManagerCompat.from(MainActivity.this);
-                        notificationManager.cancel(KEEPUS_NOTIFICATION_ID);
-                        notificationManager.notify(NOTIFY_ID, builder.build());
-                    }
-                }, 5, 5, SECONDS);
+                show();
             }
         });
+
+        btnStopService.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                stopService();
+            }
+        });
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+    public void show() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            assert manager != null;
+            manager.createNotificationChannel(serviceChannel);
+        }
+        final Intent serviceIntent = new Intent(this, ForegroundService.class);
+        serviceIntent.putExtra("inputExtra", "Foreground Service Example in Android");
+        scheduler.scheduleWithFixedDelay(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.O)
+            @Override
+            public void run() {
+
+                NotificationCompat.Builder builder =
+                        new NotificationCompat.Builder(MainActivity.this, CHANNEL_ID)
+                                .setSmallIcon(R.drawable.ic_launcher_background)
+                                .setContentTitle("Напоминание")
+                                .setDefaults(Notification.DEFAULT_SOUND)
+                                .setAutoCancel(true)
+                                .setOnlyAlertOnce(true)
+                                .setContentText(messages.get(random.nextInt(messages.size())));
+
+                notificationManager = getSystemService(NotificationManager.class);
+                notificationManager.cancel(NOTIFY_ID);
+                notificationManager.notify(NOTIFY_ID, builder.build());
+
+            }
+        }, 5, 5, SECONDS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+            startService(serviceIntent);
+
+        }
+    }
+
+    public void stopService() {
+        Intent serviceIntent = new Intent(this, ForegroundService.class);
+        stopService(serviceIntent);
     }
 }
