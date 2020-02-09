@@ -1,5 +1,7 @@
 package com.example.myapplication;
 
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -12,6 +14,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -21,80 +24,100 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static android.app.Service.START_NOT_STICKY;
+import static com.example.myapplication.MainActivity.CHANNEL_ID;
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 
 public class ForegroundService extends Service {
-  /*      Random random;
-    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
     private static final int NOTIFY_ID = 101;
+    Random random;
+
+
+    private NotificationManager notificationManager;
 
     List<String> messages = new ArrayList<>();
+    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-        public static final String CHANNEL_ID = "ForegroundServiceChannel";
-        @Override
-        public void onCreate() {
-            super.onCreate();
-            random = new Random();
+    private Timer timer;
+    final  int REFRESH=0;
+    Context context;
+    private PendingIntent pendingIntent;
 
-            messages.add("dash");
-            messages.add("koop");
-            messages.add("qwerty");
-            messages.add("maza");
-            messages.add("hello");
-        }
-
-        @Override
-        public int onStartCommand(Intent intent, int flags, int startId) {
-            return flags;
-        }*/
-  private static final String TAG = ForegroundService.class.getSimpleName();
-    public static final int NOTIFICATION_ID = 234;
-
-    private Handler mHandler;
-
-    public ForegroundService(String name) {
-        super();
-    }
-
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId){
-        return super.onStartCommand(intent, flags, startId);
-    }
-
-    @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        // TODO Auto-generated method stub
         return null;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
-    public void createNotification(Context context){
+    @Override
+    public void onCreate() {
+        // TODO Auto-generated method stub
+        super.onCreate();
+        messages.add("dash");
+        messages.add("koop");
+        messages.add("qwerty");
+        messages.add("maza");
+        messages.add("hello");
+        context=this;
+        random = new Random();
 
-        Intent intent = new Intent(context, MainActivity.class);
 
-        TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(this);
-        taskStackBuilder.addNextIntent(intent);
+        //==============================================
 
-        Notification notification = new Notification.Builder(this)
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(getString(R.string.app_name))
-                .setContentText("Sample Notification")
-                .setAutoCancel(true)
-                .setPriority(Notification.PRIORITY_MAX)
-                .setDefaults(Notification.DEFAULT_VIBRATE)
-                .build();
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_ID, notification);
+        TimerTask refresher;
+        // Initialization code in onCreate or similar:
+        timer = new Timer();
+        refresher = new TimerTask() {
+            public void run() {
+                handler.sendEmptyMessage(0);
+            };
+        };
+        // first event immediately,  following after 1 seconds each
+        timer.scheduleAtFixedRate(refresher, 5,500000);
+        //=======================================================
 
     }
+
+    @SuppressLint("HandlerLeak")
+    final Handler handler = new Handler() {
+
+        @RequiresApi(api = Build.VERSION_CODES.M)
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case REFRESH:
+                    scheduler.scheduleWithFixedDelay(new Runnable() {
+                        @RequiresApi(api = Build.VERSION_CODES.O)
+                        @Override
+                        public void run() {
+                    NotificationCompat.Builder builder =
+                            new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
+                                    .setSmallIcon(R.drawable.ic_launcher_background)
+                                    .setContentTitle("Напоминание")
+                                    .setDefaults(Notification.DEFAULT_SOUND)
+                                    .setAutoCancel(true)
+                                    .setOnlyAlertOnce(true)
+                                    .setContentText(messages.get(random.nextInt(messages.size())));
+
+                    notificationManager = getSystemService(NotificationManager.class);
+                    notificationManager.notify(NOTIFY_ID, builder.build());
+                        }
+                    }, 5, 5, SECONDS);
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 }

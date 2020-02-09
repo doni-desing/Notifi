@@ -33,8 +33,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int NOTIFY_ID = 101;
     Random random;
     Button btnStartService, btnStopService;
-    //    ForegroundService foregroundService;
+        ForegroundService foregroundService;
     ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
     List<String> messages = new ArrayList<>();
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -43,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         serviceChannel = new NotificationChannel(CHANNEL_ID, "Foreground Service Channel", NotificationManager.IMPORTANCE_DEFAULT);
-//        foregroundService = new ForegroundService("hiii");
+        foregroundService = new ForegroundService();
         btnStartService = findViewById(R.id.buttonStartService);
         btnStopService = findViewById(R.id.buttonStopService);
         random = new Random();
@@ -85,19 +86,7 @@ public class MainActivity extends AppCompatActivity {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void run() {
-
-                NotificationCompat.Builder builder =
-                        new NotificationCompat.Builder(MainActivity.this, CHANNEL_ID)
-                                .setSmallIcon(R.drawable.ic_launcher_background)
-                                .setContentTitle("Напоминание")
-                                .setDefaults(Notification.DEFAULT_SOUND)
-                                .setAutoCancel(true)
-                                .setOnlyAlertOnce(true)
-                                .setContentText(messages.get(random.nextInt(messages.size())));
-
-                notificationManager = getSystemService(NotificationManager.class);
-                notificationManager.cancel(NOTIFY_ID);
-                notificationManager.notify(NOTIFY_ID, builder.build());
+            foregroundService.handler.handleMessage(null);
 
             }
         }, 5, 5, SECONDS);
