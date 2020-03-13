@@ -16,6 +16,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
@@ -35,89 +36,79 @@ import java.util.concurrent.TimeUnit;
 
 import static android.app.Service.START_NOT_STICKY;
 import static com.example.myapplication.MainActivity.CHANNEL_ID;
-import static java.util.concurrent.TimeUnit.HOURS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 
 public class ForegroundService extends Service {
     private static final int NOTIFY_ID = 101;
     Random random;
-
-
-    private NotificationManager notificationManager;
-
     List<String> messages = new ArrayList<>();
-    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-
-    private Timer timer;
-    final  int REFRESH=0;
+    Timer timer;
     Context context;
-    private PendingIntent pendingIntent;
+    final int REFRESH = 0;
+    TimerTask refresher;
 
     @Override
     public IBinder onBind(Intent intent) {
-        // TODO Auto-generated method stub
         return null;
     }
 
     @Override
     public void onCreate() {
-        // TODO Auto-generated method stub
         super.onCreate();
+        Log.e("------", "create");
         messages.add("dash");
         messages.add("koop");
         messages.add("qwerty");
         messages.add("maza");
         messages.add("hello");
-        context=this;
         random = new Random();
 
+    }
 
-        //==============================================
 
-        TimerTask refresher;
-        // Initialization code in onCreate or similar:
+    void mTimer(long delay, long period, Context con) {
+        context = con;
         timer = new Timer();
-        refresher = new TimerTask() {
-            public void run() {
-                handler.sendEmptyMessage(0);
+        if (delay != 0) {
+            refresher = new TimerTask() {
+                public void run() {
+                    handler.sendEmptyMessage(0);
+                }
             };
-        };
-        // first event immediately,  following after 1 seconds each
-        timer.scheduleAtFixedRate(refresher, 5,500000);
-        //=======================================================
+            timer.scheduleAtFixedRate(refresher, delay , period);
+        }
 
     }
 
     @SuppressLint("HandlerLeak")
     final Handler handler = new Handler() {
-
         @RequiresApi(api = Build.VERSION_CODES.M)
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case REFRESH:
-                    scheduler.scheduleWithFixedDelay(new Runnable() {
-                        @RequiresApi(api = Build.VERSION_CODES.O)
-                        @Override
-                        public void run() {
+
+                    timer = new Timer();
+                    random = new Random();
+                    messages.add("dash");
+                    messages.add("koop");
+                    messages.add("qwerty");
+                    messages.add("maza");
+                    messages.add("hello");
+
                     NotificationCompat.Builder builder =
-                            new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
+                            new NotificationCompat.Builder(context, CHANNEL_ID)
                                     .setSmallIcon(R.drawable.ic_launcher_background)
                                     .setContentTitle("Напоминание")
                                     .setDefaults(Notification.DEFAULT_SOUND)
                                     .setAutoCancel(true)
                                     .setOnlyAlertOnce(true)
                                     .setContentText(messages.get(random.nextInt(messages.size())));
+                    NotificationManager notificationManager;
 
-                    notificationManager = getSystemService(NotificationManager.class);
+                    notificationManager = context.getSystemService(NotificationManager.class);
                     notificationManager.notify(NOTIFY_ID, builder.build());
-                        }
-                    }, 5, 5, SECONDS);
-                    break;
-                default:
-                    break;
             }
         }
     };
+
+
 }

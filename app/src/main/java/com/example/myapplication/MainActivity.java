@@ -15,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,13 +28,14 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class MainActivity extends AppCompatActivity {
     private Button button;
+    private EditText editText;
     private NotificationManager notificationManager;
     private NotificationChannel serviceChannel;
     public static final String CHANNEL_ID = "CHANNEL_ID";
     private static final int NOTIFY_ID = 101;
     Random random;
     Button btnStartService, btnStopService;
-        ForegroundService foregroundService;
+    ForegroundService foregroundService;
     ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     List<String> messages = new ArrayList<>();
@@ -43,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        editText = findViewById(R.id.edit_text);
         serviceChannel = new NotificationChannel(CHANNEL_ID, "Foreground Service Channel", NotificationManager.IMPORTANCE_DEFAULT);
         foregroundService = new ForegroundService();
         btnStartService = findViewById(R.id.buttonStartService);
@@ -56,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
         clickel();
 
     }
+
     public void clickel() {
         btnStartService.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
@@ -75,26 +79,34 @@ public class MainActivity extends AppCompatActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     public void show() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            assert manager != null;
-            manager.createNotificationChannel(serviceChannel);
-        }
+    long timer = Long.parseLong(editText.getText().toString().trim());
+
+
         final Intent serviceIntent = new Intent(this, ForegroundService.class);
         serviceIntent.putExtra("inputExtra", "Foreground Service Example in Android");
         scheduler.scheduleWithFixedDelay(new Runnable() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void run() {
-            foregroundService.handler.handleMessage(null);
+                foregroundService.handler.handleMessage(null);
 
             }
-        }, 5, 5, SECONDS);
+        }, 5, timer , SECONDS);
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
+
             startService(serviceIntent);
 
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            assert manager != null;
+            manager.createNotificationChannel(serviceChannel);
+            foregroundService.mTimer(Long.parseLong(editText.getText().toString()), Long.parseLong(editText.getText().toString()), this);
+
+        }
+
     }
 
     public void stopService() {
